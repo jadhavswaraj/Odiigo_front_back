@@ -138,12 +138,24 @@ router.post("/verify-otp", async (req, res) => {
 
     await User.updateOne({ phone }, { isVerified: true });
 
-    const accessToken = generateToken({ phone }, "15m"); // Short-lived token
-    const refreshToken = generateToken({ phone }, "15d"); // Long-lived token
+    const accessToken = generateToken({ phone }, "15s"); // Short-lived token
+    const refreshToken = generateToken({ phone }, "60s"); // Long-lived token
 
-    await User.updateOne({ phone }, { refreshToken });
+    await User.updateOne(
+      { phone },
+      {
+        isVerified: true,
+        refreshToken,
+        lastLogin: new Date(),
+      }
+    ); //{ refreshToken }
 
-    await redisClient.setEx(`accessToken:${phone}`, 900, accessToken); // 900s = 15m
+    await redisClient.setEx(`accessToken:${phone}`, 15, accessToken); // 900s = 15m
+    await redisClient.setEx(
+      `refreshToken:${phone}`,
+       60,
+      refreshToken
+    ); // 15d
 
     res.status(200).json({
       message: "OTP verified, login successful",

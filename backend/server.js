@@ -6,6 +6,8 @@ import bodyParser from "body-parser";
 
 import connectDb from "./config/dbConnection.js";
 import authRoutes from "./auth/routes/auth.js";
+import authMiddleware from "./auth/middleware/authMiddleware.js";
+import sessionCheck from "./auth/middleware/sessionCheck.js";
 import vehicleRoutes from "./services/vehicles/routes/vehicleRoutes.js";
 import serviceRoutes from "./services/categories/services/routes/serviceRoutes.js";
 import categoryRoutes from "./services/categories/routes/categoryRoutes.js";
@@ -21,7 +23,15 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 app.use(bodyParser.json());
-
+app.get(
+  "/protected-data",
+  authMiddleware,
+  sessionCheck,
+  async (req, res) => {
+    // user is verified and session is within 15 days
+    res.json({ message: "Protected data accessed!" });
+  }
+);
 app.use("/auth", authRoutes);
 app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/services", serviceRoutes);

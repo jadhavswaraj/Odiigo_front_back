@@ -16,7 +16,7 @@ const App = () => {
 
   return (
     <NavigationContainer>
-      <AppNavigator isLoggedIn={isLoggedIn} />
+      <AppNavigator key={isLoggedIn.toString()} isLoggedIn={isLoggedIn} />
     </NavigationContainer>
   );
 };

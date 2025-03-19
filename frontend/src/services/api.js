@@ -1,4 +1,5 @@
 import axios from 'axios';
+import {getTokens} from '../utils/auth';
 
 const API_URL = 'http://10.20.21.235:3000/auth'; // Matches backend port
 
@@ -25,6 +26,18 @@ export const verifyOTP = async (phone, otp) => {
   return response.data;
 };
 
+export const fetchProtectedData = async () => {
+  const {accessToken} = await getTokens();
+  if (!accessToken) throw new Error('No access token found');
+
+  const response = await axios.get(`${API_URL}/protected`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  return response.data;
+};
 // import axios from 'axios';
 
 // const API_URL = 'http://localhost:5000/auth'; // Use your computer's IP if testing on a real device
