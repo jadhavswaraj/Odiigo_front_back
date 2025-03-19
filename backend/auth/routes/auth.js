@@ -14,41 +14,113 @@ const OTP_EXPIRY = process.env.OTP_EXPIRY || 300; // 5 minutes
 const generateOtp = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
+// const sendOtp = async (phone, otp) => {
+//   try {
+//     await axios.get(
+//       `https://2factor.in/API/V1/${TWOFACTOR_API_KEY}/SMS/${phone}/${otp}/OTPLogin`
+//     );
+//   } catch (error) {
+//     throw new Error("Failed to send OTP");
+//   }
+// };
+
 const sendOtp = async (phone, otp) => {
   try {
-    await axios.get(
+    const response = await axios.get(
       `https://2factor.in/API/V1/${TWOFACTOR_API_KEY}/SMS/${phone}/${otp}/OTPLogin`
     );
+    console.log("2Factor API Response:", response.data);
   } catch (error) {
+    console.error(
+      "2Factor API Error:",
+      error.response ? error.response.data : error.message
+    );
     throw new Error("Failed to send OTP");
   }
 };
 
 // 📌 **Send OTP**
 router.post("/send-otp", async (req, res) => {
+  console.log("Received send-otp request for phone:", req.body.phone);
   const { phone } = req.body;
   if (!phone)
     return res.status(400).json({ message: "Phone number is required" });
 
   try {
     const otp = generateOtp();
-    await redisClient.setEx(`otp:${phone}`, OTP_EXPIRY, otp); // Store OTP in Redis with expiry
+    console.log("Generated OTP:", otp);
+    await redisClient.setEx(`otp:${phone}`, OTP_EXPIRY, otp);
+    console.log("OTP stored in Redis for phone:", phone);
 
     let user = await User.findOne({ phone });
     if (!user) {
       user = new User({ phone, isVerified: false });
       await user.save();
+      console.log("New user created:", phone);
     }
 
     await sendOtp(phone, otp);
+    console.log("OTP sent successfully to:", phone);
 
     res.status(200).json({ message: "OTP sent successfully" });
   } catch (error) {
+    console.log("Error in send-otp:", error.message);
     res
       .status(500)
       .json({ message: "Error sending OTP", error: error.message });
   }
 });
+// router.post("/send-otp", async (req, res) => {
+//   const { phone } = req.body;
+//   if (!phone)
+//     return res.status(400).json({ message: "Phone number is required" });
+
+//   try {
+//     const otp = generateOtp();
+//     await redisClient.setEx(`otp:${phone}`, OTP_EXPIRY, otp); // Store OTP in Redis with expiry
+
+//     let user = await User.findOne({ phone });
+//     if (!user) {
+//       user = new User({ phone, isVerified: false });
+//       await user.save();
+//     }
+
+//     await sendOtp(phone, otp);
+
+//     res.status(200).json({ message: "OTP sent successfully" });
+//   } catch (error) {
+//     res
+//       .status(500)
+//       .json({ message: "Error sending OTP", error: error.message });
+//   }
+// });
+// router.post("/send-otp", async (req, res) => {
+//   let { phone } = req.body;
+//   if (!phone)
+//     return res.status(400).json({ message: "Phone number is required" });
+
+//   // Format phone to always include +91
+//   phone = phone.startsWith("+91") ? phone : `+91${phone}`;
+
+//   try {
+//     const otp = generateOtp();
+//     await redisClient.setEx(`otp:${phone}`, OTP_EXPIRY, otp); // Store OTP in Redis with expiry
+
+//     let user = await User.findOne({ phone });
+//     if (!user) {
+//       user = new User({ phone, isVerified: false });
+//       await user.save();
+//     }
+
+//     await sendOtp(phone, otp);
+
+//     res.status(200).json({ message: "OTP sent successfully" });
+//   } catch (error) {
+//     res
+//       .status(500)
+//       .json({ message: "Error sending OTP", error: error.message });
+//   }
+// });
 
 // 📌 **Verify OTP and Generate JWT**
 router.post("/verify-otp", async (req, res) => {
